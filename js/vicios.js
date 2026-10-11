@@ -99,7 +99,7 @@ function render() {
     <div class="vic-grid">${ativos.map(cartao).join('')}</div>
     ${arquivados.length ? `
       <details class="vic-arquivo">
-        <summary>Arquivados (${arquivados.length})</summary>
+        <summary>Arquivados <span class="summary-count">${arquivados.length}</span></summary>
         <ul>${arquivados.map(v => `<li><button class="link-btn diario-priv" type="button" data-id="${escapeHtml(v.id)}" data-abrir>${escapeHtml(v.nome)}</button> <span class="text-muted">· ${duracaoDias(resumo(v, state.hoje).melhor)} de maior sequência</span></li>`).join('')}</ul>
       </details>` : ''}`;
 }

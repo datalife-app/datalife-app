@@ -103,7 +103,10 @@
 .cd-titulo svg { flex-shrink: 0; color: var(--accent); }
 .cd-titulo strong { font-size: 0.92rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .cd-data { font-size: 0.78rem; color: var(--text-muted); }
-.cd.is-passada { opacity: 0.7; }
+.cd.is-passada { background: var(--bg); border-style: dashed; border-color: var(--line-strong); }
+.cd.is-passada .cd-num { color: var(--text-muted); }
+.cd.is-passada .cd-titulo svg { color: var(--text-dim); }
+.cd.is-passada .cd-titulo strong { color: var(--text); }
 
 /* Trilha dos avisos: marcos já alcançados ficam cheios; o atual, em destaque */
 .trilha { list-style: none; display: flex; align-items: center; gap: 0; margin-top: 6px; }
@@ -128,7 +131,8 @@
 .prox-vazio p { font-size: 0.875rem; }
 .prox-vazio .text-muted { margin-top: 4px; font-size: 0.82rem; }
 .passadas { margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--line); }
-.passadas summary { cursor: pointer; font-size: 0.82rem; color: var(--text-muted); margin-bottom: 8px; }
+.passadas summary { font-size: 0.85rem; font-weight: 600; color: var(--text-muted); }
+.passadas[open] summary { margin-bottom: 10px; }
 @media (hover: hover) and (pointer: fine) {
   .cd:hover { border-color: var(--p-300); background: var(--bg-hover); }
 }

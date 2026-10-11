@@ -214,10 +214,8 @@
 
 /* Tabela ano a ano */
 .calc-tabela { background: var(--bg-raised); border: 1px solid var(--line); border-radius: var(--radius); }
-.calc-tabela summary { display: flex; align-items: center; gap: 8px; padding: 14px 18px; font-size: 0.9rem; font-weight: 600; cursor: pointer; list-style: none; }
-.calc-tabela summary::-webkit-details-marker { display: none; }
-.calc-tabela summary svg { color: var(--text-muted); transform: rotate(-90deg); transition: transform 200ms var(--ease-out); }
-.calc-tabela[open] summary svg { transform: none; }
+.calc-tabela summary { width: auto; gap: 8px; margin: 0; padding: 14px 18px; border-radius: var(--radius); font-size: 0.9rem; font-weight: 600; }
+.calc-tabela[open] summary { border-radius: var(--radius) var(--radius) 0 0; }
 .calc-tabela .table-wrap { max-height: 480px; overflow: auto; border-top: 1px solid var(--line); }
 .calc-tabela table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
 .calc-tabela th { position: sticky; top: 0; padding: 10px 14px; background: var(--bg-raised); border-bottom: 1px solid var(--line); text-align: right; font-size: 0.74rem; font-weight: 500; color: var(--text-muted); white-space: nowrap; }

@@ -96,6 +96,7 @@
   --backdrop: rgb(8 5 12 / 0.65);
   --shadow-pop: 0 12px 32px rgb(0 0 0 / 0.45);
   --check-img: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231a0f26' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E");
+  --chevron-img: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
   --dash-img: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231a0f26' stroke-width='3.5' stroke-linecap='round'%3E%3Cpath d='M6 12h12'/%3E%3C/svg%3E");
 
   /* Categorias do orçamento: rampa clara -> escura (ordem do gráfico) */
@@ -548,6 +549,52 @@ input[type="checkbox"]:focus-visible { outline: 1.5px solid var(--accent); outli
 .text-ok { color: var(--ok); }
 .text-danger { color: var(--danger); }
 .text-muted { color: var(--text-muted); }
+
+/* ---------- Esconder / mostrar (details) ---------- */
+summary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+  padding: 4px 8px 4px 4px;
+  margin-left: -4px;
+  border-radius: 8px;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+  transition: color 150ms ease, background-color 150ms ease;
+}
+summary::-webkit-details-marker { display: none; }
+summary::before {
+  content: '';
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  background: var(--text-muted);
+  -webkit-mask: var(--chevron-img) center / contain no-repeat;
+  mask: var(--chevron-img) center / contain no-repeat;
+  transform: rotate(-90deg);
+  transition: transform 200ms var(--ease-out), background-color 150ms ease;
+}
+details[open] > summary::before { transform: none; }
+summary:active::before { transform: rotate(-90deg) scale(0.85); }
+details[open] > summary:active::before { transform: scale(0.85); }
+@media (hover: hover) and (pointer: fine) {
+  summary:hover { color: var(--text); background: var(--bg-hover); }
+  summary:hover::before { background: var(--accent); }
+}
+.summary-count {
+  display: inline-grid;
+  place-items: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--tint);
+  color: var(--accent);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition-property: opacity, color, background-color, border-color !important; }

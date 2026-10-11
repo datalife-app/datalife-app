@@ -43,7 +43,7 @@
 .vic-badge { display: inline-grid; place-items: center; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px; background: var(--tint); color: var(--accent); font-size: 0.72rem; font-weight: 700; }
 
 .vic-arquivo { margin-top: 20px; font-size: 0.85rem; }
-.vic-arquivo summary { cursor: pointer; color: var(--text-muted); }
+.vic-arquivo summary { color: var(--text-muted); }
 .vic-arquivo ul { list-style: none; margin-top: 8px; display: flex; flex-direction: column; gap: 6px; }
 .vic-apoio { display: flex; gap: 8px; max-width: 72ch; margin-top: 28px; font-size: 0.78rem; line-height: 1.55; color: var(--text-dim); }
 .vic-apoio svg { flex-shrink: 0; margin-top: 2px; }

@@ -107,6 +107,7 @@ function renderProx() {
         <p class="text-muted">Clique num dia do calendário ou em <strong>Nova data</strong>: consulta, aniversário, prazo de imposto, viagem.</p>
       </li>`;
   $('passadas').hidden = !passadas.length;
+  $('passadas-count').textContent = passadas.length;
   $('passadas-list').innerHTML = passadas.map(e => cartao(e, true)).join('');
 }
 

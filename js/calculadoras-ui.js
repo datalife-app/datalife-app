@@ -146,7 +146,7 @@ export function cenarios(titulo, sub, todas) {
 }
 
 export function tabela(titulo, cabecalho, linhas) {
-  return `<details class="calc-tabela"><summary>${icon('chevronDown', 16)}${titulo}</summary>
+  return `<details class="calc-tabela"><summary>${titulo}</summary>
     <div class="table-wrap"><table>
       <thead><tr>${cabecalho.map(c => `<th>${c}</th>`).join('')}</tr></thead>
       <tbody>${linhas.map(l => `<tr>${l.map((c, i) => `<td class="${i ? 'num' : ''}" data-label="${cabecalho[i]}">${c}</td>`).join('')}</tr>`).join('')}</tbody>
