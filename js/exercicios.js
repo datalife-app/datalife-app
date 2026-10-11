@@ -87,6 +87,22 @@ function figura(partes, rotulo) {
     </figure>`;
 }
 
+/* Miniatura do card: o recorte do corpo (tronco ou pernas, frente ou costas)
+   com o músculo principal aceso e os secundários em meio-tom. */
+const SO_COSTAS = new Set(['costas', 'triceps', 'gluteos', 'posteriores']);
+const PERNAS = new Set(['quadriceps', 'posteriores', 'gluteos', 'panturrilhas']);
+
+function miniCorpo(e) {
+  const partes = SO_COSTAS.has(e.grupo) ? COSTAS : FRENTE;
+  const tom = g => g === e.grupo ? ' is-main' : e.secundarios.includes(g) ? ' is-sec' : '';
+  const lado = t => partes.map(([g, d]) => `<path d="${d}" class="mini-mus${tom(g)}"${t ? ` transform="${t}"` : ''}/>`).join('');
+  return `
+    <svg viewBox="${PERNAS.has(e.grupo) ? '26 118 68 116' : '12 32 96 96'}">
+      ${CABECA}<path d="${SILHUETA}" class="corpo"/><path d="${SILHUETA}" class="corpo" transform="${ESPELHO}"/>
+      ${lado('')}${lado(ESPELHO)}
+    </svg>`;
+}
+
 function renderMapa() {
   $('mapa').innerHTML = figura(FRENTE, 'Frente') + figura(COSTAS, 'Costas');
   pintarMapa();
@@ -108,7 +124,6 @@ function todos() {
   return [...EXERCICIOS, ...proprios].map(e => ({ ...e, extra: e.proprio ? e : state.dados.extras[e.id] || {} }));
 }
 const acharEx = id => todos().find(e => e.id === id);
-const temMidia = e => !!(e.extra.midia || animacaoDe(e.id));
 
 function renderLista() {
   const q = norm(state.busca.trim());
@@ -123,7 +138,7 @@ function renderLista() {
   $('ex-lista').innerHTML = lista.map(e => `
     <li>
       <button type="button" class="ex-card" data-id="${escapeHtml(e.id)}">
-        <span class="ex-thumb ${temMidia(e) ? 'has-midia' : ''}" aria-hidden="true">${icon(temMidia(e) ? 'play' : 'dumbbell', 18)}</span>
+        <span class="ex-thumb" aria-hidden="true">${miniCorpo(e)}</span>
         <span class="ex-info">
           <strong>${escapeHtml(e.nome)}${e.extra.fav ? ` <span class="ex-fav" title="Favorito">${icon('star', 13)}</span>` : ''}</strong>
           <span class="ex-meta">${NOME_GRUPO[e.grupo]}${state.grupo && e.grupo !== state.grupo ? ' (secundário)' : ''} · ${e.equipamento} · ${e.nivel}</span>

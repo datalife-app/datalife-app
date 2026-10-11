@@ -115,6 +115,8 @@
 .totals div { display: flex; flex-direction: column-reverse; gap: 2px; }
 .totals strong { font-size: 1.2rem; font-weight: 500; }
 .totals span { font-size: 0.72rem; color: var(--text-muted); }
+.totals .totals-note { font-size: 0.7rem; color: var(--text-muted); }
+.totals .totals-note[hidden] { display: none; }
 /* Estourou o orçamento: sem sinal de menos, vermelho em destaque */
 .totals .is-over strong { color: var(--danger); font-weight: 600; }
 .totals .is-over span { color: var(--danger); }

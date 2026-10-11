@@ -73,8 +73,20 @@
   transition: border-color 150ms ease, background-color 150ms ease, transform 160ms var(--ease-out);
 }
 .ex-card:active { transform: scale(0.99); }
-.ex-thumb { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 10px; background: var(--track); color: var(--text-muted); }
-.ex-thumb.has-midia { background: var(--tint); color: var(--accent); }
+/* Miniatura: recorte do corpo com o músculo trabalhado aceso */
+.ex-thumb {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  overflow: hidden;
+  border-radius: 10px;
+  background: radial-gradient(closest-side, var(--tint-soft), var(--track));
+}
+.ex-thumb svg { width: 36px; height: 36px; }
+.mini-mus { fill: color-mix(in srgb, var(--text) 14%, var(--bg-raised)); stroke: var(--bg-raised); stroke-width: 0.8; stroke-linejoin: round; }
+.mini-mus.is-sec { fill: color-mix(in srgb, var(--p-300) 55%, var(--bg-raised)); }
+.mini-mus.is-main { fill: var(--accent); transition: filter 200ms ease; }
 .ex-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .ex-info strong { font-size: 0.9rem; font-weight: 600; }
 .ex-fav { color: var(--p-100); vertical-align: -1px; }
@@ -84,6 +96,7 @@
 .ex-aviso { margin-top: 18px; font-size: 0.78rem; line-height: 1.5; color: var(--text-dim); }
 @media (hover: hover) and (pointer: fine) {
   .ex-card:hover { border-color: var(--p-300); background: var(--bg-hover); }
+  .ex-card:hover .mini-mus.is-main { filter: drop-shadow(0 0 3px color-mix(in srgb, var(--accent) 60%, transparent)); }
   .grupo-chip:not([aria-checked="true"]):hover { border-color: var(--p-300); color: var(--text); }
 }
 

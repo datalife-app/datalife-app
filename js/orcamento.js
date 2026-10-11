@@ -165,11 +165,16 @@ function renderOrcamento() {
       </tr>`;
   }).join('');
 
-  const restante = state.renda - totalGasto;
+  // O VR/VA fica à parte: só paga o que foi lançado com VA; o que estoura dele sai do dinheiro
+  const usadoVA = gastoVA();
+  const saldoVA = Math.max(0, state.va - usadoVA);
+  const restante = (state.renda - state.va) - (totalGasto - usadoVA) - Math.max(0, usadoVA - state.va);
   $('total-gasto').textContent = formatBRL(totalGasto);
   $('total-restante').textContent = formatBRL(Math.abs(restante));
   $('restante-label').textContent = restante < 0 ? 'Ultrapassou' : 'Ainda pode gastar';
   $('restante-box').classList.toggle('is-over', restante < 0);
+  $('restante-va').hidden = !state.va;
+  $('restante-va').textContent = `+ VR/VA ${formatBRL(saldoVA)}`;
   const utilizado = state.renda > 0 ? totalGasto / state.renda * 100 : 0;
   $('total-utilizado').textContent = formatPct(utilizado, 0);
   $('total-utilizado').parentElement.classList.toggle('is-over', utilizado > 100);
