@@ -1,6 +1,9 @@
 .DS_Store
 node_modules/
 .claude/
-README.md
+
+# Análises, ideias e notas estratégicas (não versionar: repositório público)
+analise/
 ideias.txt
 explain.md
+README.md

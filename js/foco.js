@@ -11,6 +11,9 @@ import { requireAuth } from './auth.js';
 import { initPagina, persist, dadosProntos } from './pagina.js';
 import { fetchDia, fetchDias, saveCampo, addPomodoro, fetchConfig, saveConfig, diaVazio, limparFixas, LIMITES, POMODORO_PADRAO } from './foco-db.js';
 import { fetchLendo } from './livros-db.js';
+import { fetchContas, fetchPagas, setPaga, situacao, novoPagamento } from './pagamentos-db.js';
+import { addGasto, removeGasto, fetchMonth } from './db.js';
+import { avisarMudanca } from './alertas.js';
 import { initTarefas, render as renderTarefas, reset as resetTarefas, focusInput } from './foco-tarefas.js';
 import { initNotas, render as renderNotas, flush as flushNotas, focus as focusNotas, pendentes as notasPendentes } from './foco-notas.js';
 import { initPomodoro, render as renderPomodoro, alternar as alternarPomodoro, seguirTarefa } from './foco-pomodoro.js';
@@ -39,7 +42,7 @@ const state = {
 /** Atualiza um campo do dia aberto na tela e no banco. */
 function saveDia(campo, valor, prev) {
   const day = state.day;
-  if (campo === 'tarefas') seguirFazendo(prev, valor);
+  if (campo === 'tarefas') { seguirFazendo(prev, valor); seguirContas(day, prev, valor); }
   setCampo(day, campo, valor);
   persist(saveCampo(user.uid, day, campo, valor), () => setCampo(day, campo, prev));
 }
@@ -62,6 +65,7 @@ function setCampo(day, campo, valor) {
 /** Tarefas de qualquer dia (o Quadro em "Semana" mexe em vários). */
 function salvarTarefas(day, next, prev) {
   seguirFazendo(prev, next);
+  seguirContas(day, prev, next);
   setCampo(day, 'tarefas', next);
   persist(saveCampo(user.uid, day, 'tarefas', next), () => setCampo(day, 'tarefas', prev));
 }
@@ -75,7 +79,65 @@ function seguirFazendo(prev, next) {
   if (parou && !agora.length) seguirTarefa(false);
 }
 
-/* ---------- Tarefas automáticas (fixas e livro em leitura) ---------- */
+/* ---------- Contas do Pagamentos ---------- */
+
+/* No dia do vencimento, cada conta ainda não paga vira a tarefa "Pagar <conta>"
+   (origem 'conta:<id>'). Concluir a tarefa registra o pagamento como o "Paguei"
+   do Pagamentos (inclusive o lançamento no Orçamento); desmarcar desfaz. */
+
+/** Contas que vencem em `key` e ainda não foram pagas. */
+async function contasDoDia(key) {
+  const mes = key.slice(0, 7);
+  const [contas, pagas] = await Promise.all([fetchContas(user.uid), fetchPagas(user.uid, mes)]);
+  return { contas, pagas, devidas: contas.filter(c => { const s = situacao(c, mes, pagas, key); return s.status !== 'paga' && s.vence === key; }) };
+}
+
+const contaDe = t => (t.origem?.startsWith('conta:') ? t.origem.slice(6) : null);
+
+function seguirContas(day, prev, next) {
+  const antes = new Map(prev.map(t => [t.id, t.feita]));
+  for (const t of next) {
+    const id = contaDe(t);
+    if (id && antes.has(t.id) && antes.get(t.id) !== t.feita) {
+      const mes = day.slice(0, 7), feita = t.feita;
+      filaContas = filaContas.then(() => marcarConta(mes, id, feita));
+    }
+  }
+}
+
+// Em fila: marcar e desmarcar rápido não leem o Pagamentos antes da gravação anterior
+// (setPaga entra no cache local na hora; esperar o servidor travaria a fila offline)
+let filaContas = Promise.resolve();
+
+async function marcarConta(mes, contaId, paga) {
+  try {
+    const [contas, pagas] = await Promise.all([fetchContas(user.uid), fetchPagas(user.uid, mes)]);
+    const conta = contas.find(c => c.id === contaId);
+    if (!conta) return;
+    if (paga) {
+      if (pagas[contaId]) return; // já paga (outro aparelho, ou no Pagamentos)
+      const { pagamento, gasto } = novoPagamento(conta, state.today, uid());
+      persist(setPaga(user.uid, mes, contaId, pagamento), null, `Não foi possível marcar ${conta.nome} como paga.`);
+      if (gasto) persist(addGasto(user.uid, gasto.data.slice(0, 7), gasto), null, 'Paga, mas não foi possível lançar no Orçamento.');
+      showToast(`${conta.nome}: paga${gasto ? ' e lançada no Orçamento' : ''}.`, 'success');
+    } else {
+      const pagamento = pagas[contaId];
+      if (!pagamento) return;
+      persist(setPaga(user.uid, mes, contaId, null), null, `Não foi possível desfazer o pagamento de ${conta.nome}.`);
+      if (pagamento.gasto) {
+        const g = (await fetchMonth(user.uid, pagamento.em.slice(0, 7))).gastos.find(x => x.id === pagamento.gasto);
+        if (g) persist(removeGasto(user.uid, g.data.slice(0, 7), g), null, 'Não foi possível tirar o lançamento do Orçamento.');
+      }
+      showToast(`${conta.nome}: pagamento desfeito.`);
+    }
+    avisarMudanca();
+  } catch (e) {
+    console.error(e);
+    showToast('Não foi possível atualizar o Pagamentos. Verifique a conexão.', 'error');
+  }
+}
+
+/* ---------- Tarefas automáticas (fixas, livro em leitura e contas) ---------- */
 
 let lendoP = null;
 const lendo = () => (lendoP ||= fetchLendo(user.uid).catch(e => { console.error(e); lendoP = null; return []; }));
@@ -94,10 +156,15 @@ async function gerarAutomaticas(key) {
   const livros = key === state.today
     ? (await lendo()).map(l => ({ origem: `livro:${l.id}`, texto: `Ler, no mínimo, ${PAGINAS_DIA} páginas de "${l.titulo}"` }))
     : [];
+  const contas = key === state.today
+    ? await contasDoDia(key).catch(e => { console.error(e); return null; })
+    : null;
+  const pagar = (contas?.devidas || []).map(c => ({ origem: `conta:${c.id}`, texto: `Pagar ${c.nome}` }));
   if (state.day !== key) return;
+  if (contas) sincronizarPagas(key, contas.pagas);
   const dia = state.dia;
   const ja = new Set([...dia.geradas, ...dia.tarefas.map(t => t.origem).filter(Boolean)]);
-  const novas = [...fixas, ...livros].filter(x => !ja.has(x.origem));
+  const novas = [...fixas, ...livros, ...pagar].filter(x => !ja.has(x.origem));
   if (!novas.length) return;
   const agora = Date.now();
   const tarefas = [...dia.tarefas, ...novas.map((x, i) => ({ id: uid(), texto: x.texto.slice(0, LIMITES.texto), feita: false, criada: agora + i, origem: x.origem }))]
@@ -110,6 +177,19 @@ async function gerarAutomaticas(key) {
     setCampo(key, 'tarefas', prevT);
     setCampo(key, 'geradas', prevG);
   });
+}
+
+/** Conta paga por fora (no Pagamentos, em outro aparelho): a tarefa dela aparece concluída. */
+function sincronizarPagas(key, pagas) {
+  const prev = state.dia.tarefas;
+  if (!prev.some(t => !t.feita && pagas[contaDe(t)])) return;
+  const next = prev.map(t => {
+    if (t.feita || !pagas[contaDe(t)]) return t;
+    const { fazendo, ...rest } = t;
+    return { ...rest, feita: true, concluida: Date.now() };
+  });
+  setCampo(key, 'tarefas', next); // sem seguirContas: o pagamento já existe
+  persist(saveCampo(user.uid, key, 'tarefas', next), () => setCampo(key, 'tarefas', prev));
 }
 
 /* ---------- Passar para o dia seguinte ---------- */

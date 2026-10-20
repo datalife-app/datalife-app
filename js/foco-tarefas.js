@@ -17,6 +17,14 @@ let menuId = null; // tarefa com o menu "passar para o dia seguinte" aberto
 let lastAddedId = null;
 let dragId = null;
 
+// Ícone das tarefas criadas sozinhas, pelo prefixo da origem
+const AUTO = {
+  fixa: { icon: 'repeat', title: 'Tarefa fixa' },
+  livro: { icon: 'book', title: 'Do livro em leitura' },
+  conta: { icon: 'receipt', title: 'Conta que vence hoje: concluir marca como paga' }
+};
+const tipoOrigem = t => t.origem.split(':')[0];
+
 const hora = ms => new Date(ms).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
 const VAZIO = {
@@ -57,7 +65,7 @@ export function render() {
       <li class="tarefa ${t.feita ? 'is-done' : ''} ${t.fazendo && !t.feita ? 'is-fazendo' : ''} ${t.id === lastAddedId ? 'is-new' : ''}" data-id="${id}" ${ordenavel ? 'draggable="true"' : ''}>
         ${ordenavel ? `<span class="tarefa-grip" aria-hidden="true">${icon('grip', 14)}</span>` : ''}
         <input type="checkbox" ${t.feita ? 'checked' : ''} data-toggle aria-label="${t.feita ? 'Desmarcar' : 'Concluir'}: ${escapeHtml(t.texto)}">
-        <button type="button" class="tarefa-text" data-edit-start title="Clique para editar">${t.origem ? `<span class="tarefa-auto" title="${t.origem.startsWith('livro') ? 'Do livro em leitura' : 'Tarefa fixa'}">${icon(t.origem.startsWith('livro') ? 'book' : 'repeat', 13)}</span>` : ''}${escapeHtml(t.texto)}${t.feita && t.concluida ? `<span class="tarefa-quando">feita às ${hora(t.concluida)}</span>` : ''}${t.fazendo ? '<span class="tarefa-fazendo">fazendo</span>' : ''}</button>
+        <button type="button" class="tarefa-text" data-edit-start title="Clique para editar">${t.origem ? `<span class="tarefa-auto" title="${AUTO[tipoOrigem(t)].title}">${icon(AUTO[tipoOrigem(t)].icon, 13)}</span>` : ''}${escapeHtml(t.texto)}${t.feita && t.concluida ? `<span class="tarefa-quando">feita às ${hora(t.concluida)}</span>` : ''}${t.fazendo ? '<span class="tarefa-fazendo">fazendo</span>' : ''}</button>
         <div class="tarefa-actions">
           ${ordenavel ? `
           <button class="icon-btn tarefa-move" type="button" data-move="-1" aria-label="Mover para cima" ${i === 0 ? 'disabled' : ''}>${icon('chevronUp', 15)}</button>

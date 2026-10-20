@@ -12,7 +12,7 @@ import { requireAuth } from './auth.js';
 import { initPagina, persist, dadosProntos } from './pagina.js';
 import { avisarMudanca } from './alertas.js';
 import {
-  fetchContas, saveContas, fetchPagas, setPaga, situacao, quando, AVISOS, LIMITES
+  fetchContas, saveContas, fetchPagas, setPaga, situacao, quando, novoPagamento, AVISOS, LIMITES
 } from './pagamentos-db.js';
 import { addGasto, removeGasto, updateGasto, fetchMonth } from './db.js';
 import { enhanceSelect } from './selectpicker.js';
@@ -151,10 +151,7 @@ async function lancamentoDe(pagamento) {
 
 function pagar(conta) {
   const mes = state.mes;
-  const gasto = conta.lancar && conta.valor
-    ? { id: uid(), cat: conta.cat, desc: conta.nome, valor: conta.valor, data: state.hoje }
-    : null;
-  const pagamento = { em: state.hoje, valor: conta.valor, ...(gasto ? { gasto: gasto.id } : {}) }; // pago hoje (antes ou depois do vencimento)
+  const { pagamento, gasto } = novoPagamento(conta, state.hoje, uid());
   state.pagas = { ...state.pagas, [conta.id]: pagamento };
   render();
   avisarMudanca();

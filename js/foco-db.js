@@ -22,8 +22,9 @@ import {
 } from './store.js';
 
 export const LIMITES = { tarefas: 200, texto: 280, notas: 10, titulo: 60, nota: 20000, copos: 40, pomodoros: 500, fixas: 30, geradas: 60 };
-// Tarefa criada sozinha: 'fixa:<id>' (tarefas fixas) ou 'livro:<id>' (livro em leitura)
-export const ORIGEM_RE = /^(fixa|livro):[\w-]{1,64}$/;
+// Tarefa criada sozinha: 'fixa:<id>' (tarefas fixas), 'livro:<id>' (livro em leitura)
+// ou 'conta:<id>' (conta do Pagamentos que vence no dia)
+export const ORIGEM_RE = /^(fixa|livro|conta):[\w-]{1,64}$/;
 export const REFEICOES = [
   { id: 'cafe', nome: 'Café da manhã', quando: 'Manhã', porque: 'Comece o dia com energia' },
   { id: 'almoco', nome: 'Almoço', quando: 'Tarde', porque: 'A refeição principal do dia' },

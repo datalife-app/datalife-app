@@ -74,6 +74,17 @@ export function situacao(conta, mes, pagas, hoje) {
   return { status: 'futura', vence, dias };
 }
 
+/**
+ * Pagamento feito hoje (antes ou depois do vencimento). Com "lança no Orçamento",
+ * vem junto o gasto a criar; o pagamento guarda o id dele (`gasto`).
+ */
+export function novoPagamento(conta, hoje, gastoId) {
+  const gasto = conta.lancar && conta.valor
+    ? { id: gastoId, cat: conta.cat, desc: conta.nome, valor: conta.valor, data: hoje }
+    : null;
+  return { pagamento: { em: hoje, valor: conta.valor, ...(gasto ? { gasto: gasto.id } : {}) }, gasto };
+}
+
 /** "hoje" · "amanhã" · "em 3 dias" · "venceu ontem" · "venceu há 4 dias" */
 export function quando(dias) {
   if (dias === 0) return 'vence hoje';
