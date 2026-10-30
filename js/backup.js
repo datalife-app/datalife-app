@@ -19,6 +19,7 @@ import { exportExercicios, parseExercicios, importExercicios } from './exercicio
 import { exportTreino, parseTreino, importTreino, contarTreino } from './treino-db.js';
 import { exportConselhos, parseConselhos, importConselhos } from './conselhos-db.js';
 import { exportVicios, parseVicios, importVicios } from './vicios-db.js';
+import { exportFlashcards, parseFlashcards, importFlashcards } from './flashcards-db.js';
 import { CATEGORIAS, icon, downloadFile, formatBRLRaw, showToast, dayKey } from './utils.js';
 
 const $ = id => document.getElementById(id);
@@ -68,7 +69,7 @@ async function withBusy(btn, fn) {
 /**
  * Ferramentas mais novas, todas no mesmo formato: chave no JSON, export,
  * parse, import, e como contar o que veio (resumo antes de importar).
- * Diário e Vícios cifrados pelo cadeado saem e voltam cifrados.
+ * Diário, Vícios e Flashcards cifrados pelo cadeado saem e voltam cifrados.
  */
 const EXTRAS = [
   { chave: 'pagamentos', exp: exportPagamentos, parse: parsePagamentos, imp: importPagamentos, n: p => p?.contas.length || 0, um: 'conta fixa', varios: 'contas fixas' },
@@ -78,7 +79,8 @@ const EXTRAS = [
   { chave: 'exercicios', exp: exportExercicios, parse: parseExercicios, imp: importExercicios, n: p => p?.proprios.length || 0, um: 'exercício seu', varios: 'exercícios seus' },
   { chave: 'treino', exp: exportTreino, parse: parseTreino, imp: importTreino, n: contarTreino, um: 'registro de carga', varios: 'registros de carga' },
   { chave: 'conselhos', exp: exportConselhos, parse: parseConselhos, imp: importConselhos, n: p => p.length, um: 'ação dos Conselhos', varios: 'ações dos Conselhos' },
-  { chave: 'vicios', exp: exportVicios, parse: parseVicios, imp: importVicios, n: p => p.length, um: 'hábito em Vícios', varios: 'hábitos em Vícios' }
+  { chave: 'vicios', exp: exportVicios, parse: parseVicios, imp: importVicios, n: p => p.length, um: 'hábito em Vícios', varios: 'hábitos em Vícios' },
+  { chave: 'flashcards', exp: exportFlashcards, parse: parseFlashcards, imp: importFlashcards, n: p => p.length, um: 'baralho de flashcards', varios: 'baralhos de flashcards' }
 ];
 const vazio = p => p == null || (Array.isArray(p) && !p.length);
 const rotulo = (x, n) => `${n} ${n === 1 ? x.um : x.varios}`;

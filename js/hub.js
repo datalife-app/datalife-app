@@ -24,6 +24,7 @@ const TOOLS = [
   { grupo: 'Rotina', nome: 'Lista de compras', desc: 'A lista do mercado já separada por corredor, com o que você sempre compra.', icon: 'cart', href: 'groceries.html' },
   { grupo: 'Rotina', nome: 'Exercícios', desc: 'Escolha o músculo no corpo e veja como executar cada exercício do jeito certo.', icon: 'dumbbell', href: 'workouts.html' },
   { grupo: 'Você', nome: 'Livros', desc: 'O que você está lendo, o que já leu e o desafio do ano, numa estante sua.', icon: 'book', href: 'books.html' },
+  { grupo: 'Você', nome: 'Flashcards', desc: 'Seus cartões de memória: cada um volta no dia em que você estaria para esquecer.', icon: 'layers', href: 'flashcards.html' },
   { grupo: 'Você', nome: 'Diário', desc: 'Um lugar só seu para o dia, o humor e os hábitos que você está deixando para trás.', icon: 'pencil', href: 'journal.html' }
 ];
 

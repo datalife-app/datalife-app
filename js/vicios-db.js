@@ -15,7 +15,7 @@
 
 import { fs, LOCAL_MODE, ref, col, commitInBatches, lsWrite, lsRemove, lsList, isId, isText, isCents, DAY_RE } from './store.js';
 import { fromDayKey } from './utils.js';
-import { abrir, selar, cifrado, iniciarCofre, lerConfig } from './cripto.js';
+import { abrir, selar, cifrado, iniciarCofre, lerConfig, foraDoCadeado, cifradoParaBackup, cifradoDoBackup } from './cripto.js';
 
 export const LIMITES = { nome: 60, motivos: 6, motivo: 140, planos: 8, plano: 140, recaidas: 300, nota: 280, vontades: 400, minutos: 1440 };
 
@@ -189,6 +189,15 @@ export async function regravarVicios(uid, vicios) {
   await commitInBatches(docs.map(([id, d]) => [ref(uid, 'vicios', id), d]));
 }
 
+/** Regrava só os hábitos fora do estado atual do cadeado (ver foraDoCadeado). @returns quantos */
+export async function regravarForaVicios(uid) {
+  await iniciarCofre(uid);
+  const fora = foraDoCadeado(await lerCrus(uid));
+  const abertos = (await Promise.all(fora.map(([id, raw]) => abrirVicio(id, raw)))).filter(Boolean);
+  await regravarVicios(uid, abertos);
+  return abertos.length;
+}
+
 export async function deleteVicio(uid, id) {
   if (!isId(id)) throw new Error('Hábito inválido');
   if (LOCAL_MODE) return lsRemove(`vicios/${id}`);
@@ -200,12 +209,12 @@ export async function deleteVicio(uid, id) {
 /** Cifrados saem cifrados (o backup não precisa nem expõe a senha). */
 export async function exportVicios(uid) {
   return (await lerCrus(uid)).map(([id, raw]) => (cifrado(raw)
-    ? { id, c: raw.c, criado: Number.isSafeInteger(raw.criado) ? raw.criado : 0 }
+    ? { id, ...cifradoParaBackup(raw, ['criado']) }
     : sanitizeVicio(id, raw))).filter(Boolean);
 }
 export const parseVicios = list => (Array.isArray(list)
-  ? list.map(v => (cifrado(v) && isId(v.id)
-    ? { id: v.id, c: String(v.c).slice(0, 200000), criado: Number.isSafeInteger(v.criado) ? v.criado : 0 }
+  ? list.map(v => (cifrado(v)
+    ? (isId(v.id) && cifradoDoBackup(v, 200000, ['criado']) ? { id: v.id, ...cifradoDoBackup(v, 200000, ['criado']) } : null)
     : sanitizeVicio(v?.id, v))).filter(Boolean)
   : []);
 export async function importVicios(uid, parsed, criptoDoArquivo = null) {

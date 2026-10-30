@@ -278,3 +278,28 @@ textarea.input { height: auto; padding: 10px 12px; resize: vertical; line-height
 .range:active::-webkit-slider-thumb { transform: scale(1.15); }
 .range:focus-visible { outline: none; }
 .range:focus-visible::-webkit-slider-thumb { outline: 1.5px solid var(--accent); outline-offset: 2px; }
+
+/* ---------- Cadeado (Diário, Vícios e Flashcards) ---------- */
+.cofre-tela { display: grid; place-items: center; min-height: 70vh; }
+.cofre-tela[hidden] { display: none; }
+body[data-cofre="migrando"] main.view:not(.cofre-tela) { display: none !important; }
+.cofre-box { display: flex; flex-direction: column; gap: 14px; width: 100%; max-width: 380px; padding: 32px 28px; background: var(--bg-raised); border: 1px solid var(--line); border-radius: var(--radius); }
+.cofre-box h1 { font-family: var(--font-display); font-size: 1.6rem; font-weight: 700; letter-spacing: var(--track-display); }
+.cofre-box > p { margin-top: -6px; font-size: 0.88rem; line-height: 1.5; color: var(--text-muted); }
+.cofre-icon { display: grid; place-items: center; width: 52px; height: 52px; border-radius: 14px; background: var(--tint); color: var(--accent); }
+.cofre-erro { font-size: 0.85rem; color: var(--warn); }
+.cofre-box .btn { justify-content: center; }
+.cofre-info p { font-size: 0.88rem; line-height: 1.55; }
+.cofre-info ul { list-style: none; display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+.cofre-info li { display: flex; gap: 8px; align-items: flex-start; font-size: 0.82rem; line-height: 1.45; color: var(--text-muted); }
+.cofre-info li svg { flex-shrink: 0; margin-top: 2px; color: var(--accent); }
+.cofre-info strong { color: var(--text); }
+.cofre-form { padding: 0 !important; margin-top: 4px; }
+.cofre-form .btn { align-self: flex-start; }
+.cofre-acao { justify-content: center; gap: 8px; }
+.cofre-sec { border-top: 1px solid var(--line); padding-top: 12px; }
+.cofre-sec summary { font-size: 0.9rem; font-weight: 600; }
+.cofre-sec[open] summary { margin-bottom: 10px; }
+@media (max-width: 480px) { .cofre-box { padding: 24px 18px; } }
+.cofre-voltar { align-self: flex-start; margin-bottom: -4px; }
+.cofre-auto { padding-top: 12px; border-top: 1px solid var(--line); }

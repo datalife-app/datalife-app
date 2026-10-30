@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.gstatic.com https://apis.google.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://*.googleusercontent.com; connect-src 'self' https://*.googleapis.com https://www.gstatic.com; frame-src https://*.firebaseapp.com https://accounts.google.com https://apis.google.com; object-src 'none'; base-uri 'self'; form-action 'self'">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Flashcards · DataLife</title>
+  <meta name="description" content="Seus próprios flashcards com repetição espaçada: cada carta volta no dia certo para não esquecer.">
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#110c17">
+  <meta name="apple-mobile-web-app-title" content="DataLife">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <script src="js/tema.js"></script>
+  <link rel="preload" href="assets/fonts/red-hat-text-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="assets/fonts/schibsted-grotesk-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/temas.css">
+  <link rel="stylesheet" href="css/ferramentas.css">
+  <link rel="stylesheet" href="css/flashcards.css">
+</head>
+
+<body class="is-loading">
+  <div id="local-banner"></div>
+  <header class="topbar">
+    <div class="container topbar-inner">
+      <a href="hub.html" class="brand"><svg class="brand-mark" viewBox="0 0 64 64" aria-hidden="true"><g fill="none" stroke-width="10"><path d="M33.19 15.04A17 17 0 0 1 33.19 48.96" style="stroke:var(--p-100)"/><path d="M30.81 48.96A17 17 0 0 1 15.01 31.41" style="stroke:var(--p-200)"/><path d="M15.26 29.05A17 17 0 0 1 30.81 15.04" style="stroke:var(--p-300)"/></g></svg><span>Data<em>Life</em></span></a>
+      <div class="topbar-right">
+        <button class="icon-btn" id="btn-cofre" type="button" title="Cadeado" aria-label="Cadeado"></button>
+        <button class="icon-btn" id="btn-tema" type="button" title="Tema" aria-label="Tema"></button>
+        <button class="icon-btn" id="btn-logout" title="Sair" aria-label="Sair"></button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ============ BARALHOS ============ -->
+  <main class="container view" id="view-lista" hidden>
+    <div class="page-head">
+      <div>
+        <a href="hub.html" class="back-link" data-back>Hub</a>
+        <h1>Flashcards</h1>
+        <p>Escreva a pergunta na frente e a resposta no verso. Cada carta volta no dia em que você estaria para esquecê-la: as que você sabe aparecem cada vez menos.</p>
+      </div>
+      <div class="page-head-actions">
+        <button class="btn btn-primary" type="button" id="btn-novo-baralho"></button>
+      </div>
+    </div>
+    <dl class="fc-resumo" id="fc-resumo"></dl>
+    <ul class="fc-baralhos" id="fc-baralhos"></ul>
+  </main>
+
+  <!-- ============ UM BARALHO ============ -->
+  <main class="container view" id="view-baralho" hidden>
+    <div class="page-head">
+      <div>
+        <a href="#" class="back-link" data-back-list>Flashcards</a>
+        <h1 id="bar-nome"></h1>
+        <p id="bar-desc"></p>
+      </div>
+      <div class="page-head-actions">
+        <button class="btn btn-ghost" type="button" id="btn-ajustes"></button>
+        <button class="btn btn-ghost" type="button" id="btn-importar"></button>
+        <button class="btn btn-ghost" type="button" id="btn-nova-carta"></button>
+        <button class="btn btn-primary" type="button" id="btn-estudar"></button>
+      </div>
+    </div>
+
+    <div class="fc-painel">
+      <section class="card fc-prev" aria-labelledby="prev-title">
+        <h2 class="card-title" id="prev-title">Revisões nos próximos 7 dias</h2>
+        <ol class="fc-barras" id="fc-barras"></ol>
+      </section>
+      <section class="card fc-estados" aria-labelledby="est-title">
+        <h2 class="card-title" id="est-title">Cartas</h2>
+        <dl id="fc-estados"></dl>
+        <p class="fc-estados-nota">Madura: intervalo de 21 dias ou mais.</p>
+      </section>
+    </div>
+
+    <section class="fc-cartas" aria-labelledby="cartas-title">
+      <div class="fc-cartas-head">
+        <h2 id="cartas-title">Todas as cartas <span class="summary-count" id="cartas-count"></span></h2>
+        <label class="fc-busca">
+          <span class="fc-busca-icon" aria-hidden="true"></span>
+          <input class="input" type="search" id="busca" placeholder="Buscar nas cartas" aria-label="Buscar nas cartas" autocomplete="off">
+        </label>
+      </div>
+      <ul class="fc-lista" id="fc-lista"></ul>
+    </section>
+  </main>
+
+  <!-- ============ ESTUDO ============ -->
+  <main class="container view fc-estudo" id="view-estudo" hidden>
+    <div class="fc-estudo-top">
+      <a href="#" class="back-link" id="estudo-voltar" data-back-list>Encerrar</a>
+      <span class="fc-estudo-nome" id="estudo-nome"></span>
+      <span class="fc-estudo-conta num" id="estudo-conta" aria-live="polite"></span>
+    </div>
+    <div class="progress"><div class="progress-bar" id="estudo-prog"></div></div>
+
+    <div id="estudo-corpo">
+      <article class="fc-carta" id="fc-carta" aria-live="polite">
+        <div class="fc-face fc-frente" id="carta-frente"></div>
+        <div class="fc-face fc-verso" id="carta-verso" hidden></div>
+      </article>
+      <div class="fc-acoes" id="fc-acoes">
+        <button class="btn btn-primary fc-mostrar" type="button" id="btn-mostrar">Mostrar resposta <kbd>Espaço</kbd></button>
+        <div class="fc-notas" id="fc-notas" role="group" aria-label="Quanto você lembrou?" hidden></div>
+      </div>
+      <button class="link-btn fc-editar-atual" type="button" id="btn-editar-atual">Editar esta carta</button>
+    </div>
+
+    <div class="fc-fim" id="estudo-fim" hidden></div>
+  </main>
+
+  <!-- ============ CADEADO (trancado) ============ -->
+  <main class="container view cofre-tela" id="cofre-tela" hidden>
+    <form class="cofre-box" id="cofre-abrir" autocomplete="off">
+      <a href="hub.html" class="back-link cofre-voltar" data-back>Hub</a>
+      <span class="cofre-icon" aria-hidden="true"></span>
+      <h1>Flashcards trancados</h1>
+      <p>Seus baralhos estão cifrados com a senha do cadeado (a mesma do Diário). Ela não fica salva em lugar nenhum.</p>
+      <input type="text" name="username" autocomplete="username" value="DataLife: cadeado do Diário" hidden>
+      <label class="field"><span class="field-label">Senha do cadeado</span>
+        <input class="input" type="password" name="senha" required autocomplete="current-password" minlength="1" maxlength="200"></label>
+      <label class="check-row"><input type="checkbox" name="lembrar"> <span>Lembrar neste aparelho (até você sair da conta)</span></label>
+      <p class="cofre-erro" id="cofre-erro" role="alert" hidden></p>
+      <button class="btn btn-primary" type="submit">Destrancar</button>
+    </form>
+  </main>
+
+  <dialog class="dialog dialog-sm" id="cofre-dialog" aria-labelledby="cofre-title">
+    <div class="dialog-inner">
+      <header class="dialog-head">
+        <div><h2 class="dialog-title" id="cofre-title">Cadeado</h2><p class="dialog-sub" id="cofre-sub"></p></div>
+        <button class="icon-btn" type="button" data-close aria-label="Fechar"></button>
+      </header>
+      <div class="form-body" id="cofre-body"></div>
+    </div>
+  </dialog>
+
+  <!-- ============ DIÁLOGOS ============ -->
+  <dialog class="dialog dialog-sm" id="bar-dialog" aria-labelledby="bar-title">
+    <form method="dialog" class="dialog-inner" id="bar-form" autocomplete="off">
+      <header class="dialog-head">
+        <div><h2 class="dialog-title" id="bar-title">Novo baralho</h2><p class="dialog-sub">Um assunto por baralho: idioma, matéria da prova, termos do trabalho.</p></div>
+        <button class="icon-btn" type="button" data-close aria-label="Fechar"></button>
+      </header>
+      <div class="form-body">
+        <label class="field"><span class="field-label">Nome</span>
+          <input class="input" name="nome" maxlength="60" required placeholder="Ex.: Inglês, Anatomia, Direito constitucional"></label>
+        <label class="field"><span class="field-label">Descrição (opcional)</span>
+          <input class="input" name="desc" maxlength="200" placeholder="De onde vêm as cartas, para quando é a prova"></label>
+        <label class="field"><span class="field-label">Cartas novas por dia</span>
+          <input class="input num fc-novos" name="novosDia" type="number" min="0" max="200" step="1" required>
+          <span class="field-hint">Cada carta nova gera umas 10 revisões no primeiro mês. 20 por dia dá cerca de 15 minutos diários.</span></label>
+      </div>
+      <footer class="dialog-foot">
+        <button class="btn btn-ghost btn-sm danger-btn" type="button" id="bar-excluir">Excluir baralho</button>
+        <div class="dialog-actions">
+          <button class="btn btn-ghost" type="button" data-close>Cancelar</button>
+          <button class="btn btn-primary" type="submit">Salvar</button>
+        </div>
+      </footer>
+    </form>
+  </dialog>
+
+  <dialog class="dialog" id="carta-dialog" aria-labelledby="carta-title">
+    <form method="dialog" class="dialog-inner" id="carta-form" autocomplete="off">
+      <header class="dialog-head">
+        <div><h2 class="dialog-title" id="carta-title">Nova carta</h2><p class="dialog-sub" id="carta-sub"></p></div>
+        <button class="icon-btn" type="button" data-close aria-label="Fechar"></button>
+      </header>
+      <div class="form-body">
+        <label class="field"><span class="field-label">Frente (a pergunta)</span>
+          <textarea class="input fc-texto" name="frente" rows="3" maxlength="1000" required placeholder="Ex.: Capital da Austrália"></textarea></label>
+        <label class="field"><span class="field-label">Verso (a resposta)</span>
+          <textarea class="input fc-texto" name="verso" rows="3" maxlength="1000" required placeholder="Ex.: Camberra"></textarea></label>
+        <p class="field-hint">Uma ideia por carta. Perguntas curtas são lembradas por mais tempo que listas.</p>
+        <label class="check-row" id="carta-zerar-row" hidden><input type="checkbox" name="zerar"> <span>Recomeçar o aprendizado desta carta (volta a ser nova)</span></label>
+      </div>
+      <footer class="dialog-foot">
+        <button class="btn btn-ghost btn-sm danger-btn" type="button" id="carta-excluir">Excluir</button>
+        <div class="dialog-actions">
+          <button class="btn btn-ghost" type="button" id="carta-outra">Salvar e criar outra</button>
+          <button class="btn btn-primary" type="submit">Salvar</button>
+        </div>
+      </footer>
+    </form>
+  </dialog>
+
+  <dialog class="dialog" id="imp-dialog" aria-labelledby="imp-title">
+    <form method="dialog" class="dialog-inner" id="imp-form" autocomplete="off">
+      <header class="dialog-head">
+        <div><h2 class="dialog-title" id="imp-title">Importar cartas</h2><p class="dialog-sub">Uma carta por linha, com a frente e o verso separados por tabulação ou ponto e vírgula.</p></div>
+        <button class="icon-btn" type="button" data-close aria-label="Fechar"></button>
+      </header>
+      <div class="form-body">
+        <label class="field"><span class="field-label">Cole as cartas</span>
+          <textarea class="input fc-imp-texto" name="texto" rows="8" placeholder="dog;cachorro&#10;to be;ser, estar&#10;Mitocôndria;Produz energia (ATP) para a célula"></textarea></label>
+        <div class="fc-imp-arquivo">
+          <button class="btn btn-ghost btn-sm" type="button" id="imp-arquivo-btn"></button>
+          <input type="file" id="imp-arquivo" accept=".txt,.csv,.tsv,text/plain,text/csv,text/tab-separated-values" hidden>
+          <span class="field-hint">Planilha salva como CSV, ou do Anki: Exportar &gt; Notas em texto simples.</span>
+        </div>
+        <p class="fc-imp-previa" id="imp-previa" aria-live="polite"></p>
+      </div>
+      <footer class="dialog-foot">
+        <span></span>
+        <div class="dialog-actions">
+          <button class="btn btn-ghost" type="button" data-close>Cancelar</button>
+          <button class="btn btn-primary" type="submit" id="imp-ok" disabled>Importar</button>
+        </div>
+      </footer>
+    </form>
+  </dialog>
+
+  <script type="module" src="js/flashcards.js"></script>
+</body>
+
+</html>

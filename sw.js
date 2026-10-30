@@ -10,7 +10,7 @@
    Troque VERSAO ao publicar mudanças na lista de arquivos.
    ============================================ */
 
-const VERSAO = 'datalife-v5';
+const VERSAO = 'datalife-v6';
 const SDK = 'https://www.gstatic.com/firebasejs/';
 const SHELL = [
   './',
@@ -19,6 +19,7 @@ const SHELL = [
   './books.html',
   './budget.html',
   './calculators.html',
+  './flashcards.html',
   './focus.html',
   './goals.html',
   './groceries.html',
@@ -35,6 +36,7 @@ const SHELL = [
   './css/diario.css',
   './css/exercicios.css',
   './css/ferramentas.css',
+  './css/flashcards.css',
   './css/foco.css',
   './css/livros.css',
   './css/main.css',
@@ -79,6 +81,9 @@ const SHELL = [
   './js/exercicios-db.js',
   './js/exercicios.js',
   './js/firebase-init.js',
+  './js/flashcards-calc.js',
+  './js/flashcards-db.js',
+  './js/flashcards.js',
   './js/foco-db.js',
   './js/foco-historico.js',
   './js/foco-notas.js',

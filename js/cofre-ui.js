@@ -3,18 +3,125 @@
    ============================================
    Tela de senha quando trancado e o diálogo para ligar, trocar a senha,
    trancar agora ou desligar. A criptografia em si está em cripto.js.
+   Usado pelo Diário (com os Vícios) e pelos Flashcards: a mesma senha
+   e a mesma chave cifram os três.
    ============================================ */
 
 import {
-  iniciarCofre, situacao, destrancar, trancar, criarCofre, trocarSenha, prepararDesligar, cancelarDesligar, desligarCofre
+  iniciarCofre, situacao, destrancar, trancar, criarCofre, trocarSenha, prepararDesligar, cancelarDesligar, desligarCofre,
+  vigiarConfig, modoResgate, temChave, prepararMigracao
 } from './cripto.js';
-import { fetchEntradas, regravarDiario } from './diario-db.js';
-import { fetchVicios, regravarVicios } from './vicios-db.js';
+import { fetchEntradas, regravarDiario, regravarForaDiario } from './diario-db.js';
+import { fetchVicios, regravarVicios, regravarForaVicios } from './vicios-db.js';
+import { carregarFlashcards, regravarFlashcards, regravarForaFlashcards } from './flashcards-db.js';
 import { icon, showToast } from './utils.js';
 import { enhanceSelect } from './selectpicker.js';
 
 const $ = id => document.getElementById(id);
 const MIN = 10;
+
+/**
+ * Tudo o que o cadeado cifra. carregar: tudo aberto; regravar: no formato
+ * atual do cadeado; fora: só o que ficou fora dele (ver foraDoCadeado).
+ */
+const RECURSOS = [
+  { carregar: fetchEntradas, regravar: regravarDiario, fora: regravarForaDiario },
+  { carregar: fetchVicios, regravar: regravarVicios, fora: regravarForaVicios },
+  { carregar: carregarFlashcards, regravar: regravarFlashcards, fora: regravarForaFlashcards }
+];
+const carregarTudo = uid => Promise.all(RECURSOS.map(r => r.carregar(uid)));
+/** Se parar no meio, o que faltou fica marcado: é corrigido na próxima abertura (curarSePreciso). */
+async function regravarTudo(uid, dados) {
+  try {
+    for (const [i, r] of RECURSOS.entries()) await r.regravar(uid, dados[i]);
+  } catch (e) {
+    marcarCura();
+    throw e;
+  }
+}
+const regravarFora = async uid => (await Promise.all(RECURSOS.map(r => r.fora(uid)))).reduce((a, n) => a + n, 0);
+
+/* ---------- Cadeado mudou em outro aparelho ---------- */
+// Marca (por aparelho) que algo pode ter ficado fora do cadeado novo: corrigido ao destrancar
+const CURAR_KEY = 'datalife:cofre-curar';
+const marcarCura = () => { try { localStorage.setItem(CURAR_KEY, '1'); } catch { /* ok */ } };
+const curaPendente = () => { try { return localStorage.getItem(CURAR_KEY) === '1'; } catch { return false; } };
+
+/**
+ * Ligado, desligado ou recriado em outro aparelho com esta aba aberta.
+ * As gravações já estão travadas (selar recusa). Desligado: o que esta aba
+ * cifrou e o outro aparelho não converteu volta em claro (senão ficaria
+ * ilegível para sempre). Recriado: pede a senha nova e passa o que ficou
+ * com a chave antiga para a nova (nada sai em claro com o cadeado ligado).
+ * Ligado: o que estiver em claro é cifrado depois de destrancar. Então recarrega.
+ */
+async function cadeadoMudou({ antes, depois }) {
+  if (depois) marcarCura();
+  if (antes && depois && temChave()) return migrar(depois);
+  showToast('O cadeado foi alterado em outro aparelho. Recarregando para continuar com segurança…', 'error', 10000);
+  if (antes && temChave()) {
+    try {
+      modoResgate();
+      await regravarFora(user.uid);
+    } catch (e) {
+      console.error(e);
+    }
+  }
+  setTimeout(() => location.reload(), 1500);
+}
+
+/** Cadeado recriado em outro aparelho: a senha nova, para recifrar o que esta aba ainda tem na chave antiga. */
+function migrar(depois) {
+  prepararMigracao(depois);
+  document.body.dataset.cofre = 'migrando'; // esconde o conteúdo mesmo se a página redesenhar
+  document.querySelectorAll('dialog[open]').forEach(d => d.close());
+  const abas = document.querySelector('.topbar .tabs');
+  if (abas) abas.style.visibility = 'hidden';
+  // Formulário limpo (sem o ouvinte da abertura da página)
+  const velho = $('cofre-abrir');
+  const f = velho.cloneNode(true);
+  velho.replaceWith(f);
+  f.querySelector('h1').textContent = 'Cadeado novo';
+  f.querySelector('h1 + p').textContent = 'O cadeado foi recriado em outro aparelho, com outra senha. Digite a senha nova para continuar: o que esta página gravou com a senha antiga passa para a nova.';
+  f.lembrar.closest('.check-row').hidden = true;
+  $('cofre-tela').hidden = false;
+  f.senha.focus();
+  f.addEventListener('submit', async e => {
+    e.preventDefault();
+    const btn = f.querySelector('[type="submit"]');
+    btn.disabled = true;
+    btn.textContent = 'Abrindo…';
+    $('cofre-erro').hidden = true;
+    try {
+      await destrancar(f.senha.value);
+    } catch (err) {
+      $('cofre-erro').textContent = err.message === 'senha' ? 'Senha incorreta.' : 'Não foi possível abrir. Tente de novo.';
+      $('cofre-erro').hidden = false;
+      btn.disabled = false;
+      btn.textContent = 'Destrancar';
+      return f.senha.select();
+    }
+    btn.textContent = 'Cifrando…';
+    try {
+      await regravarFora(user.uid);
+    } catch (err) {
+      console.error(err); // o que faltou fica com a chave antiga; a cura marcada cuida do que está em claro
+    }
+    location.reload();
+  });
+}
+
+/** Destrancado (ou sem cadeado): corrige o que ficou fora do estado atual, se outro aparelho mexeu no cadeado. */
+async function curarSePreciso() {
+  if (!curaPendente()) return;
+  try {
+    const n = await regravarFora(user.uid);
+    localStorage.removeItem(CURAR_KEY);
+    if (n) showToast(`${n} ${n === 1 ? 'documento ajustado' : 'documentos ajustados'} ao cadeado atual.`);
+  } catch (e) {
+    console.error(e); // tenta de novo na próxima abertura
+  }
+}
 
 /**
  * Quem tem gravação pendente (o texto do Diário salva 0,8 s depois da última
@@ -59,7 +166,7 @@ let user = null;
 function iconeBotao() {
   const s = situacao();
   $('btn-cofre').innerHTML = icon(s === 'desligado' ? 'unlock' : 'lock');
-  $('btn-cofre').title = s === 'desligado' ? 'Cadeado do Diário: desligado' : 'Cadeado do Diário: ligado';
+  $('btn-cofre').title = s === 'desligado' ? 'Cadeado: desligado' : 'Cadeado: ligado';
 }
 
 /** Mostra a tela de senha até destrancar. Resolve quando o conteúdo pode ser lido. */
@@ -75,8 +182,12 @@ export async function exigirCofre(u) {
   }
   iconeBotao();
   bindDialog();
+  vigiarConfig(user.uid, cadeadoMudou);
   $('cofre-tela').querySelector('.cofre-voltar').insertAdjacentHTML('afterbegin', icon('chevronLeft', 15));
-  if (s !== 'trancado') return vigiarInatividade();
+  if (s !== 'trancado') {
+    vigiarInatividade();
+    return curarSePreciso();
+  }
   $('cofre-tela').hidden = false;
   const abas = document.querySelector('.topbar .tabs');
   if (abas) abas.style.visibility = 'hidden';
@@ -96,6 +207,7 @@ export async function exigirCofre(u) {
         if (abas) abas.style.visibility = '';
         iconeBotao();
         vigiarInatividade();
+        await curarSePreciso();
         resolve();
       } catch (err) {
         $('cofre-erro').textContent = err.message === 'senha' ? 'Senha incorreta.' : 'Não foi possível abrir. Tente de novo.';
@@ -117,12 +229,12 @@ const campoSenha = (name, label, auto = 'new-password') => `
 
 function render() {
   const s = situacao();
-  $('cofre-sub').textContent = s === 'desligado' ? 'Desligado' : 'Ligado: Diário e Vícios cifrados neste navegador';
+  $('cofre-sub').textContent = s === 'desligado' ? 'Desligado' : 'Ligado: Diário, Vícios e Flashcards cifrados neste navegador';
   const body = $('cofre-body');
   if (s === 'desligado') {
     body.innerHTML = `
       <div class="cofre-info">
-        <p>Com o cadeado, as entradas do Diário e os Vícios são <strong>cifrados no seu aparelho</strong> antes de ir para o banco de dados. Nem o Google nem quem conseguisse acesso ao banco leria o conteúdo.</p>
+        <p>Com o cadeado, as entradas do Diário, os Vícios e os Flashcards são <strong>cifrados no seu aparelho</strong> antes de ir para o banco de dados. Nem o Google nem quem conseguisse acesso ao banco leria o conteúdo.</p>
         <ul>
           <li>${icon('lock', 14)}<span>AES-256 com uma chave derivada da sua senha (PBKDF2, 600 mil rodadas).</span></li>
           <li>${icon('info', 14)}<span><strong>Sem a senha, não há recuperação.</strong> Anote-a num gerenciador de senhas.</span></li>
@@ -134,7 +246,7 @@ function render() {
         ${campoSenha('senha', `Senha (mínimo ${MIN} caracteres; uma frase é ótima)`)}
         ${campoSenha('confirma', 'Repita a senha')}
         <label class="check-row"><input type="checkbox" name="lembrar"> <span>Lembrar neste aparelho</span></label>
-        <label class="check-row"><input type="checkbox" name="ciente" required> <span>Entendo que, se esquecer a senha, o Diário não pode ser recuperado.</span></label>
+        <label class="check-row"><input type="checkbox" name="ciente" required> <span>Entendo que, se esquecer a senha, o Diário, os Vícios e os Flashcards não podem ser recuperados.</span></label>
         <button class="btn btn-primary" type="submit">Ligar o cadeado</button>
       </form>`;
     return;
@@ -163,7 +275,7 @@ function render() {
       <form id="cofre-desligar" autocomplete="off" class="form-body cofre-form">
         <p class="text-muted">Tudo volta a ser gravado sem cifra (ainda protegido pelas regras do banco e pelo seu login).</p>
         <input type="text" name="username" autocomplete="username" value="DataLife: cadeado do Diário" hidden>
-        ${campoSenha('senha', 'Senha do Diário', 'current-password')}
+        ${campoSenha('senha', 'Senha do cadeado', 'current-password')}
         <button class="btn btn-ghost btn-sm danger-btn" type="submit">Desligar</button>
       </form>
     </details>`;
@@ -211,7 +323,7 @@ function bindDialog() {
     if (e.target.id !== 'cofre-auto') return;
     try { localStorage.setItem(AUTO_KEY, e.target.value); } catch { /* ok */ }
     vigiarInatividade();
-    showToast(Number(e.target.value) ? `O Diário tranca sozinho depois de ${e.target.value} minutos sem uso.` : 'Trancar sozinho: desligado.');
+    showToast(Number(e.target.value) ? `O cadeado tranca sozinho depois de ${e.target.value} minutos sem uso.` : 'Trancar sozinho: desligado.');
   });
 
   $('cofre-body').addEventListener('submit', async e => {
@@ -222,11 +334,11 @@ function bindDialog() {
         if (!validarNova(f)) return;
         await ocupado(f, 'Cifrando…', async () => {
           // Lê tudo em claro antes; depois de criar o cofre, regrava cifrado
-          const [entradas, vicios] = await Promise.all([fetchEntradas(user.uid), fetchVicios(user.uid)]);
+          const dados = await carregarTudo(user.uid);
           await criarCofre(user.uid, f.senha.value, { lembrarAparelho: f.lembrar.checked });
-          await regravarDiario(user.uid, entradas);
-          await regravarVicios(user.uid, vicios);
-          showToast(`Cadeado ligado: ${entradas.size} ${entradas.size === 1 ? 'entrada cifrada' : 'entradas cifradas'}.`);
+          await regravarTudo(user.uid, dados);
+          const n = dados[0].size;
+          showToast(`Cadeado ligado: ${n} ${n === 1 ? 'entrada cifrada' : 'entradas cifradas'}.`);
         });
       } else if (f.id === 'cofre-trocar') {
         if (!validarNova(f)) return;
@@ -238,9 +350,7 @@ function bindDialog() {
         await ocupado(f, 'Decifrando…', async () => {
           await prepararDesligar(f.senha.value);
           try {
-            const [entradas, vicios] = await Promise.all([fetchEntradas(user.uid), fetchVicios(user.uid)]);
-            await regravarDiario(user.uid, entradas);
-            await regravarVicios(user.uid, vicios);
+            await regravarTudo(user.uid, await carregarTudo(user.uid));
           } catch (err) {
             cancelarDesligar();
             throw err;

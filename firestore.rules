@@ -241,6 +241,38 @@ service cloud.firestore {
           && request.resource.data.get('arquivado', false) is bool));
     }
 
+    // Flashcards: o baralho com o progresso (pequeno, regravado no estudo) e as cartas (lidas ao abrir)
+    match /users/{userId}/flashcards/{baralhoId} {
+      allow read, delete: if isOwner(userId);
+      allow create, update: if isOwner(userId)
+        && baralhoId.matches('^[A-Za-z0-9_-]{1,64}$')
+        && (isCifrado(request.resource.data, 400000) || (
+          request.resource.data.keys().hasOnly(['nome', 'desc', 'novosDia', 'criado', 'n', 'em', 'srs', 'hist'])
+          && request.resource.data.nome is string
+          && request.resource.data.nome.size() > 0
+          && request.resource.data.nome.size() <= 60
+          && request.resource.data.get('desc', '') is string
+          && request.resource.data.get('desc', '').size() <= 200
+          && isIntEntre(request.resource.data.get('novosDia', 20), 0, 200)
+          && isIntEntre(request.resource.data.get('n', 0), 0, 2000)
+          && request.resource.data.get('criado', 0) is int
+          && request.resource.data.get('em', 0) is int
+          && request.resource.data.get('srs', {}) is map
+          && request.resource.data.get('srs', {}).size() <= 2000
+          && request.resource.data.get('hist', {}) is map
+          && request.resource.data.get('hist', {}).size() <= 400));
+    }
+
+    match /users/{userId}/flashcards-cartas/{baralhoId} {
+      allow read, delete: if isOwner(userId);
+      allow create, update: if isOwner(userId)
+        && baralhoId.matches('^[A-Za-z0-9_-]{1,64}$')
+        && (isCifrado(request.resource.data, 1000000) || (
+          request.resource.data.keys().hasOnly(['cartas'])
+          && request.resource.data.cartas is list
+          && request.resource.data.cartas.size() <= 2000));
+    }
+
     // Cadeado do Diário: sal e a chave dos dados embrulhada pela senha (nunca a senha)
     match /users/{userId}/settings/cripto {
       allow read, delete: if isOwner(userId);

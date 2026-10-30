@@ -16,7 +16,7 @@
    ============================================ */
 
 import { fs, LOCAL_MODE, ref, col, commitInBatches, lsRead, lsWrite, lsRemove, lsList, DAY_RE } from './store.js';
-import { abrir, selar, cifrado, iniciarCofre, lerConfig, limparConfig, adotarConfig } from './cripto.js';
+import { abrir, selar, cifrado, iniciarCofre, lerConfig, limparConfig, adotarConfig, foraDoCadeado } from './cripto.js';
 
 export const LIMITES = { texto: 20000, tag: 30, tags: 12, gratidao: 200, cadastro: 40 };
 export const HUMORES = [
@@ -146,6 +146,16 @@ export async function regravarDiario(uid, entradas) {
   const docs = await Promise.all([...entradas].map(async ([k, e]) => [k, await paraDoc(uid, e)]));
   if (LOCAL_MODE) return docs.forEach(([k, d]) => lsWrite(`diario/${k}`, d));
   await commitInBatches(docs.map(([k, d]) => [ref(uid, 'diario', k), d]));
+}
+
+/** Regrava só as entradas fora do estado atual do cadeado (ver foraDoCadeado). @returns quantas */
+export async function regravarForaDiario(uid) {
+  await iniciarCofre(uid);
+  const fora = foraDoCadeado(await fetchEntradasCruas(uid));
+  const abertas = (await Promise.all(fora.map(async ([k, raw]) => [k, await abrirEntrada(k, raw)])))
+    .filter(([, e]) => e && temConteudo(e));
+  await regravarDiario(uid, abertas);
+  return abertas.length;
 }
 
 export async function fetchTags(uid) {
