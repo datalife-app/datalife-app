@@ -25,7 +25,7 @@
 
 import { fs, db, LOCAL_MODE, ref, col, commitInBatches, lsRead, lsWrite, lsRemove, lsList, isId, isText, DAY_RE } from './store.js';
 import {
-  abrir, selar, cifrado, iniciarCofre, lerConfig, foraDoCadeado, cifradoParaBackup, cifradoDoBackup
+  abrir, selar, cifrado, iniciarCofre, lerConfig, limparConfig, foraDoCadeado, cifradoParaBackup, cifradoDoBackup
 } from './cripto.js';
 import { EASE_INI, INT_MAX } from './flashcards-calc.js';
 
@@ -367,6 +367,25 @@ export const parseFlashcards = list => (Array.isArray(list)
   : []);
 
 export async function importFlashcards(uid, parsed, criptoDoArquivo = null) {
+  return (await gravarImportados(uid, parsed, criptoDoArquivo)).length;
+}
+
+/**
+ * Só os flashcards de um arquivo: um backup do DataLife (a chave flashcards)
+ * ou a lista dela sozinha. Devolve os baralhos novos já abertos, no formato
+ * do ouvinte, e quantos ficaram de fora (já existiam ou têm outro cadeado).
+ */
+export async function importarArquivoFlashcards(uid, json) {
+  const lista = Array.isArray(json) ? json : json?.flashcards;
+  if (!Array.isArray(lista)) throw new Error('Arquivo sem baralhos de flashcards.');
+  const parsed = parseFlashcards(lista);
+  if (!parsed.length) throw new Error('Arquivo sem baralhos de flashcards.');
+  const gravados = await gravarImportados(uid, parsed, limparConfig(json?.diario?.cripto));
+  const novos = await Promise.all(gravados.map(async ([id, meta]) => ({ tipo: 'added', id, b: await abrirMeta(id, meta) })));
+  return { novos, deFora: parsed.length - gravados.length };
+}
+
+async function gravarImportados(uid, parsed, criptoDoArquivo) {
   const ids = new Set((await tolerante(lerCrus(uid, COL))).map(([id]) => id));
   // Cifrados só servem com o mesmo cadeado (o do Diário, restaurado antes, se preciso)
   const algumCifrado = parsed.some(x => x.baralho.c || x.cartas.c);
@@ -380,5 +399,5 @@ export async function importFlashcards(uid, parsed, criptoDoArquivo = null) {
     return [[COL, x.id, meta], [COL_CARTAS, x.id, cartas]];
   }))).flat();
   await gravarLotes(uid, ops);
-  return novos.length;
+  return ops.filter(([c]) => c === COL).map(([, id, meta]) => [id, meta]);
 }

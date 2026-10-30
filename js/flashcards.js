@@ -22,7 +22,7 @@ import { requireAuth } from './auth.js';
 import { initPagina, persist, dadosProntos } from './pagina.js';
 import { exigirCofre, antesDeTrancar } from './cofre-ui.js';
 import {
-  ouvirBaralhos, ouvirCartas, saveMeta, saveBaralho, deleteBaralho, tamanho, novoIdCarta, LIMITES, NOVOS_DIA, TAMANHO_MAX
+  ouvirBaralhos, ouvirCartas, saveMeta, saveBaralho, deleteBaralho, importarArquivoFlashcards, tamanho, novoIdCarta, LIMITES, NOVOS_DIA, TAMANHO_MAX
 } from './flashcards-db.js';
 import {
   NOTAS, srsDe, ehNova, intervalos, responder, rotuloIntervalo, contagem, filaDoDia, estados, previsao,
@@ -220,7 +220,7 @@ function navegar() {
 /* ---------- Baralhos ---------- */
 
 function renderLista() {
-  $('btn-novo-baralho').hidden = !!state.erro;
+  $('btn-novo-baralho').hidden = $('btn-importar-baralhos').hidden = !!state.erro;
   if (state.erro) {
     $('fc-resumo').hidden = true;
     $('fc-baralhos').innerHTML = `
@@ -627,6 +627,34 @@ async function lerTexto(file) {
   }
 }
 
+/* ---------- Importar baralhos (.json) ---------- */
+
+// Um backup do DataLife (só os flashcards entram) ou a lista de baralhos dele
+async function importarBaralhos(file) {
+  if (file.size > 5 * 1024 * 1024) return showToast('Arquivo grande demais (máximo de 5 MB).', 'error');
+  const btn = $('btn-importar-baralhos');
+  btn.disabled = true;
+  try {
+    let json;
+    try { json = JSON.parse(await file.text()); } catch { throw new Error('Arquivo inválido: não é um JSON.'); }
+    const { novos, deFora } = await importarArquivoFlashcards(user.uid, json);
+    aplicarBaralhos(novos);
+    const cartas = novos.reduce((a, x) => a + (x.b?.n || 0), 0);
+    const fora = deFora ? ` ${plural(deFora, 'outro ficou de fora: já estava aqui ou tem outro cadeado', 'outros ficaram de fora: já estavam aqui ou têm outro cadeado')}.` : '';
+    showToast(novos.length
+      ? `${plural(novos.length, 'baralho importado', 'baralhos importados')}, com ${plural(cartas, 'carta', 'cartas')}.${fora}`
+      : 'Esses baralhos já estão aqui (ou foram cifrados com outro cadeado).', 'success', 6000);
+  } catch (e) {
+    if (!e.message?.startsWith('Arquivo')) console.error(e);
+    showToast(e.message?.startsWith('Arquivo') ? e.message
+      : e.message === 'trancado' ? 'O cadeado está trancado: destranque e importe de novo.'
+        : e?.code === 'permission-denied' ? 'O banco recusou a gravação: publique as regras do Firestore (firestore.rules).'
+          : 'Não foi possível importar. Tente novamente.', 'error', 7000);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
 /* ---------- Eventos ---------- */
 
 function fecharCom(dlg) {
@@ -636,6 +664,7 @@ function fecharCom(dlg) {
 
 function bind() {
   $('btn-novo-baralho').innerHTML = `${icon('plus', 16)} Novo baralho`;
+  $('btn-importar-baralhos').innerHTML = `${icon('upload', 15)} Importar baralhos`;
   $('btn-nova-carta').innerHTML = `${icon('plus', 16)} Nova carta`;
   $('btn-importar').innerHTML = `${icon('upload', 15)} Importar`;
   $('btn-ajustes').innerHTML = `${icon('sliders', 15)} Ajustes`;
@@ -654,6 +683,12 @@ function bind() {
     else if (e.target.closest('[data-recarregar]')) location.reload();
   });
   $('btn-novo-baralho').addEventListener('click', () => abrirBaralhoDialog(null));
+  $('btn-importar-baralhos').addEventListener('click', () => $('importar-baralhos-arquivo').click());
+  $('importar-baralhos-arquivo').addEventListener('change', e => {
+    const file = e.target.files[0];
+    e.target.value = '';
+    if (file) importarBaralhos(file);
+  });
   $('btn-ajustes').addEventListener('click', () => abrirBaralhoDialog(baralho(state.aberto)));
   $('btn-nova-carta').addEventListener('click', () => abrirCartaDialog(null));
   $('btn-estudar').addEventListener('click', e => {
